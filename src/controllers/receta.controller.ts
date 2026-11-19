@@ -151,11 +151,11 @@ export async function createReceta(req: Request, res: Response) {
       status: "ok",
       data: newReceta,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error);
     res.status(500).json({
       error: "Error al registrar la receta",
-      details: error.message,
+      details: error instanceof Error ? error.message : "Error desconocido",
     });
   }
 }

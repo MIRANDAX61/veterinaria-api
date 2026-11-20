@@ -1,10 +1,12 @@
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import historialVisitasRoutes from "./routes/historialVisitasRoutes";
+import { setupSwagger } from "../lib/swagger";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 
+setupSwagger(app);
 
 app.use(cors());
 app.use(express.json());

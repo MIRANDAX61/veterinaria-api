@@ -18,6 +18,13 @@ app.get("/", (req: Request, res: Response) => {
     });
 });
 
+app.use("/medicamentos", medicamentoRouter);
+app.use("/recetas", recetaRouter);
+app.use("/api/mascotas", mascotaRoutes);
+app.use("/api/propietarios", propietarioRoutes);
+app.use("/api/veterinarios", veterinarioRoutes);
+app.use("/api/historial-visitas", historialVisitasRoutes);
+
 app.listen(PORT, () => {
     console.log(`Servidor en http://localhost:${PORT}`);
 });

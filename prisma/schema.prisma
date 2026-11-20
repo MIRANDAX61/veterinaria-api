@@ -43,22 +43,41 @@ model Veterinario {
 }
 
 model Medicamento {
-  id Int @id @default(autoincrement())
-  nombre String
-  fecha_vencimiento DateTime @db.Date
-  marca String
-  lote String
-  receta Receta[]
+  id                Int                  @id @default(autoincrement())
+  nombre            String
+  fecha_vencimiento DateTime             @db.Date
+  marca             String
+  lote              String
+
+  recetas            Receta_medicamento[]
+
   @@map("medicamento")
 }
 
+
 model Receta {
-  id Int @id @default(autoincrement())
+  id                 Int                  @id @default(autoincrement())
+  mascota_id         Int
+  mascota            Mascota              @relation(fields: [mascota_id], references: [id])
+  historial_visitas  Historial_visitas[]
+
+  medicamentos       Receta_medicamento[]
+  @@map("recetas")
+}
+
+model Receta_medicamento {
+  id             Int         @id @default(autoincrement())
+  receta_id      Int
   medicamento_id Int
-  medicamento Medicamento @relation(fields: [medicamento_id], references: [id])
-  mascota_id Int
-  mascota Mascota @relation(fields: [mascota_id], references: [id])
-  historial_visitas Historial_visitas[]
+  dosis          String
+  frecuencia     String
+  duracion       String
+
+  receta         Receta      @relation(fields: [receta_id], references: [id])
+  medicamento    Medicamento @relation(fields: [medicamento_id], references: [id])
+
+  @@unique([receta_id, medicamento_id])
+  @@map("receta_medicamento")
 }
 
 model Historial_visitas {

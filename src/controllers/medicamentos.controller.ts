@@ -1,14 +1,12 @@
 
 import type { Request, Response } from "express";
-import { prisma } from "../services/prisma";
+import { MedicamentoModel } from "../models/medicamento.models";
 import { Prisma } from "../../generated/prisma/client";
 
 // GET: Obtener todos los medicamentos
 export async function getMedicamentos(req: Request, res: Response) {
   try {
-    const medicamentos = await prisma.medicamento.findMany({
-      orderBy: { id: "asc" },
-    });
+    const medicamentos = await MedicamentoModel.getAll();
 
     res.status(200).json({ data: medicamentos });
   } catch (error: unknown) {
@@ -30,9 +28,7 @@ export async function getMedicamentoById(req: Request, res: Response) {
       return;
     }
 
-    const medicamento = await prisma.medicamento.findUnique({
-      where: { id },
-    });
+    const medicamento = await MedicamentoModel.getById(id);
 
     if (!medicamento) {
       res.status(404).json({ error: "Medicamento no encontrado" });
@@ -69,14 +65,12 @@ export async function createMedicamento(req: Request, res: Response) {
       return;
     }
 
-    const newMedicamento = await prisma.medicamento.create({
-      data: {
-        nombre,
-        fecha_vencimiento: fecha,
-        marca,
-        lote,
-      },
-    });
+    const newMedicamento = await MedicamentoModel.create(
+    nombre,
+    fecha,
+    marca,
+    lote
+  );
 
     res.status(201).json({
       status: "ok",
@@ -116,12 +110,6 @@ export async function updateMedicamento(req: Request, res: Response) {
       return;
     }
 
-    const data: Prisma.MedicamentoUpdateInput = {};
-
-    if (nombre !== undefined) data.nombre = nombre;
-    if (marca !== undefined) data.marca = marca;
-    if (lote !== undefined) data.lote = lote;
-
     if (fecha_vencimiento !== undefined) {
       const fecha = new Date(fecha_vencimiento);
 
@@ -129,14 +117,15 @@ export async function updateMedicamento(req: Request, res: Response) {
         res.status(400).json({ error: "Fecha de vencimiento inválida" });
         return;
       }
-
-      data.fecha_vencimiento = fecha;
     }
 
-    const medicamento = await prisma.medicamento.update({
-      where: { id },
-      data,
-    });
+    const medicamento = await MedicamentoModel.update(
+      id,
+      nombre,
+      fecha_vencimiento,
+      marca,
+      lote
+    );
 
     res.status(200).json({
       status: "ok",
@@ -171,9 +160,7 @@ export async function deleteMedicamento(req: Request, res: Response) {
       return;
     }
 
-    await prisma.medicamento.delete({
-      where: { id },
-    });
+    await MedicamentoModel.delete(id);
 
     res.status(200).json({
       status: "ok",

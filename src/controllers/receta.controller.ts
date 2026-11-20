@@ -1,57 +1,15 @@
 import type { Request, Response } from "express";
-import { prisma } from "../services/prisma";
+import { RecetaModel } from "../models/receta.models";
 import { Prisma } from "../../generated/prisma/client";
+import type {
+  CreateRecetaInput,
+  UpdateRecetaInput,
+} from "../middlewares/validate-receta";
 
-type MedicamentoRecetaInput = {
-  medicamento_id: number;
-  dosis: string;
-  frecuencia: string;
-  duracion: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isMedicamentoRecetaInput(
-  value: unknown
-): value is MedicamentoRecetaInput {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.medicamento_id === "number" &&
-    Number.isInteger(value.medicamento_id) &&
-    value.medicamento_id > 0 &&
-    typeof value.dosis === "string" &&
-    value.dosis.trim().length > 0 &&
-    typeof value.frecuencia === "string" &&
-    value.frecuencia.trim().length > 0 &&
-    typeof value.duracion === "string" &&
-    value.duracion.trim().length > 0
-  );
-}
-
-function isMedicamentoRecetaInputArray(
-  value: unknown
-): value is MedicamentoRecetaInput[] {
-  return Array.isArray(value) && value.every(isMedicamentoRecetaInput);
-}
 // GET: Obtener todas las recetas
 export async function getRecetas(req: Request, res: Response) {
   try {
-    const recetas = await prisma.receta.findMany({
-      orderBy: { id: "asc" },
-      include: {
-        mascota: true,
-        medicamentos: {
-          include: {
-            medicamento: true,
-          },
-        },
-      },
-    });
+    const recetas = await RecetaModel.getAll();
 
     res.status(200).json({ data: recetas });
   } catch (error: unknown) {
@@ -62,7 +20,6 @@ export async function getRecetas(req: Request, res: Response) {
     });
   }
 }
-
 // GET: Obtener una receta por ID
 export async function getRecetaById(req: Request, res: Response) {
   try {
@@ -73,17 +30,7 @@ export async function getRecetaById(req: Request, res: Response) {
       return;
     }
 
-    const receta = await prisma.receta.findUnique({
-      where: { id },
-      include: {
-        mascota: true,
-        medicamentos: {
-          include: {
-            medicamento: true,
-          },
-        },
-      },
-    });
+    const receta = await RecetaModel.getById(id);
 
     if (!receta) {
       res.status(404).json({ error: "Receta no encontrada" });
@@ -102,50 +49,13 @@ export async function getRecetaById(req: Request, res: Response) {
 
 // POST: Crear una receta con varios medicamentos
 export async function createReceta(req: Request, res: Response) {
+  const { mascota_id, medicamentos } = req.body as CreateRecetaInput;
+
   try {
-    const body: unknown = req.body;
-
-    if (!isRecord(body)) {
-      res.status(400).json({ error: "Datos de la solicitud inválidos" });
-      return;
-    }
-
-    const mascota_id = body.mascota_id;
-    const medicamentos = body.medicamentos;
-    if (
-    typeof mascota_id !== "number" ||
-    !Number.isInteger(mascota_id) ||
-    mascota_id <= 0 ||
-    !isMedicamentoRecetaInputArray(medicamentos) ||
-    medicamentos.length === 0
-  ) {
-    res.status(400).json({
-      error: "Debes proporcionar una mascota válida y al menos un medicamento válido",
-    });
-    return;
-  }
-
-    const newReceta = await prisma.receta.create({
-      data: {
-        mascota_id,
-        medicamentos: {
-          create: medicamentos.map((item) => ({
-            medicamento_id: item.medicamento_id,
-            dosis: item.dosis,
-            frecuencia: item.frecuencia,
-            duracion: item.duracion,
-          })),
-        },
-      },
-      include: {
-        mascota: true,
-        medicamentos: {
-          include: {
-            medicamento: true,
-          },
-        },
-      },
-    });
+    const newReceta = await RecetaModel.create(
+      mascota_id,
+      medicamentos
+    );
 
     res.status(201).json({
       status: "ok",
@@ -164,101 +74,21 @@ export async function createReceta(req: Request, res: Response) {
 export async function updateReceta(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
-    const body: unknown = req.body;
-
-    if (!isRecord(body)) {
-      res.status(400).json({ error: "Datos de la solicitud inválidos" });
-      return;
-    }
-
-    const mascota_id = body.mascota_id;
-    const medicamentos = body.medicamentos;
 
     if (!Number.isInteger(id) || id <= 0) {
-      res.status(400).json({ error: "ID de receta inválido" });
-      return;
-    }
-
-    // Verificar que se envíe al menos un dato para actualizar
-    if (mascota_id === undefined && medicamentos === undefined) {
       res.status(400).json({
-        error: "Debes enviar al menos un campo para actualizar",
+        error: "ID de receta inválido",
       });
       return;
     }
 
-    // Validar la lista de medicamentos, si fue enviada
-    if (
-      medicamentos !== undefined &&
-      !isMedicamentoRecetaInputArray(medicamentos)
-    ) {
-      res.status(400).json({
-        error: "Cada medicamento debe tener un ID válido, dosis, frecuencia y duración",
-      });
-      return;
-    }
+    const { mascota_id, medicamentos } = req.body as UpdateRecetaInput;
 
-    if (
-      mascota_id !== undefined &&
-      (
-        typeof mascota_id !== "number" ||
-        !Number.isInteger(mascota_id) ||
-        mascota_id <= 0
-      )
-    ) {
-      res.status(400).json({
-        error: "El ID de la mascota debe ser un número entero positivo",
-      });
-      return;
-    }
-
-    // Actualizar la receta y sus medicamentos en una transacción
-    const recetaActualizada = await prisma.$transaction(async (tx) => {
-      // Actualizar la mascota asociada, si fue enviada
-      if (mascota_id !== undefined) {
-        await tx.receta.update({
-          where: { id },
-          data: { mascota_id },
-        });
-      } else {
-        // Comprobar que la receta exista
-        await tx.receta.findUniqueOrThrow({
-          where: { id },
-        });
-      }
-
-      // Reemplazar los medicamentos solamente si fueron enviados
-      if (medicamentos !== undefined) {
-        await tx.receta_medicamento.deleteMany({
-          where: { receta_id: id },
-        });
-
-        if (medicamentos.length > 0) {
-          await tx.receta_medicamento.createMany({
-            data: medicamentos.map((item) => ({
-              receta_id: id,
-              medicamento_id: item.medicamento_id,
-              dosis: item.dosis,
-              frecuencia: item.frecuencia,
-              duracion: item.duracion,
-            })),
-          });
-        }
-      }
-
-      // Obtener la receta actualizada con sus relaciones
-      return await tx.receta.findUnique({
-        where: { id },
-        include: {
-          mascota: true,
-          medicamentos: {
-            include: {
-              medicamento: true,
-            },
-          },
-        },
-      });
-    });
+    const recetaActualizada = await RecetaModel.update(
+      id,
+      mascota_id,
+      medicamentos
+    );
 
     res.status(200).json({
       status: "ok",
@@ -309,22 +139,7 @@ export async function deleteReceta(req: Request, res: Response) {
       return;
     }
 
-    await prisma.$transaction(async (tx) => {
-      // Verificar que la receta exista
-      await tx.receta.findUniqueOrThrow({
-        where: { id },
-      });
-
-      // Eliminar las relaciones con medicamentos
-      await tx.receta_medicamento.deleteMany({
-        where: { receta_id: id },
-      });
-
-      // Eliminar la receta
-      await tx.receta.delete({
-        where: { id },
-      });
-    });
+    await RecetaModel.delete(id);
 
     res.status(200).json({
       status: "ok",

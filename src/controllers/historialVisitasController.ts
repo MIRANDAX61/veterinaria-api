@@ -1,5 +1,9 @@
-import type { Request, Response, NextFunction } from "express";
-import { prisma } from "../services/prisma";
+import type { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 class HistorialVisitasController {
   async crear(req: Request, res: Response, next: NextFunction) {

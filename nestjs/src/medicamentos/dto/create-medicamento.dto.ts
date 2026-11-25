@@ -1,6 +1,22 @@
+﻿import {
+  IsDateString,
+  IsNotEmpty,
+  IsString,
+} from 'class-validator';
+
 export class CreateMedicamentoDto {
-  nombre: string;
-  fecha_vencimiento: string;
-  marca: string;
-  lote: string;
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsDateString()
+  fecha_vencimiento!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  marca!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lote!: string;
 }

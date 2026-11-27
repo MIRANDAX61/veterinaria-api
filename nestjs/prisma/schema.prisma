@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Propietario {
+  id  Int   @id @default(autoincrement())
+  nombre String
+  telefono String?
+  correo  String? @unique
+  @@map("propietarios")
+}
+
+model Mascota {
+  id Int @id @default(autoincrement())
+  nombre String
+  fecha_nacimiento DateTime @db.Date
+  sexo Sexo 
+  raza String
+  obs_importantes String
+  receta Receta[]
+  historial_visitas Historial_visitas?
+  @@map("mascotas")
+}
+
+model Veterinario {
+  id Int @id @default(autoincrement())
+  nombre String
+  telefono String
+  correo String
+  historial_visitas Historial_visitas[]
+  @@map("veterinarios")
+}
+
+model Medicamento {
+  id                Int                  @id @default(autoincrement())
+  nombre            String
+  fecha_vencimiento DateTime             @db.Date
+  marca             String
+  lote              String
+
+  recetas            Receta_medicamento[]
+
+  @@map("medicamento")
+}
+
+
+model Receta {
+  id                 Int                  @id @default(autoincrement())
+  mascota_id         Int
+  mascota            Mascota              @relation(fields: [mascota_id], references: [id])
+  historial_visitas  Historial_visitas[]
+
+  medicamentos       Receta_medicamento[]
+  @@map("recetas")
+}
+
+model Receta_medicamento {
+  id             Int         @id @default(autoincrement())
+  receta_id      Int
+  medicamento_id Int
+  dosis          String
+  frecuencia     String
+  duracion       String
+
+  receta         Receta      @relation(fields: [receta_id], references: [id])
+  medicamento    Medicamento @relation(fields: [medicamento_id], references: [id])
+
+  @@unique([receta_id, medicamento_id])
+  @@map("receta_medicamento")
+}
+
+model Historial_visitas {
+  id Int @id @default(autoincrement())
+  mascota_id Int @unique
+  mascota Mascota @relation(fields: [mascota_id], references: [id])
+  fecha DateTime @db.Date
+  veterinario_id Int 
+  veterinario Veterinario @relation(fields: [veterinario_id], references: [id])
+  receta_id Int?
+  receta Receta? @relation(fields: [receta_id], references: [id])
+  motivo String
+  diagnostico String
+  tratamiento String
+}
+
+enum Sexo {
+  MACHO
+  HEMBRA
+}

@@ -37,8 +37,10 @@ export class MedicamentosService {
   create(data: CreateMedicamentoDto) {
     return this.prisma.medicamento.create({
       data: {
-        ...data,
+        nombre: data.nombre,
         fecha_vencimiento: this.validarFecha(data.fecha_vencimiento),
+        marca: data.marca,
+        lote: data.lote,
       },
     });
   }

@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,6 +5,21 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role { 
+  VETERINARIO
+  ADMIN
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String  @default("0123456")
+  role     Role
+  veterinario Veterinario?
+
+  @@map("users")
 }
 
 
@@ -37,47 +47,30 @@ model Veterinario {
   id Int @id @default(autoincrement())
   nombre String
   telefono String
-  correo String
+  correo String @unique
+  userId            Int                 @unique
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   historial_visitas Historial_visitas[]
   @@map("veterinarios")
 }
 
 model Medicamento {
-  id                Int                  @id @default(autoincrement())
-  nombre            String
-  fecha_vencimiento DateTime             @db.Date
-  marca             String
-  lote              String
-
-  recetas            Receta_medicamento[]
-
+  id Int @id @default(autoincrement())
+  nombre String
+  fecha_vencimiento DateTime @db.Date
+  marca String
+  lote String
+  receta Receta[]
   @@map("medicamento")
 }
 
-
 model Receta {
-  id                 Int                  @id @default(autoincrement())
-  mascota_id         Int
-  mascota            Mascota              @relation(fields: [mascota_id], references: [id])
-  historial_visitas  Historial_visitas[]
-
-  medicamentos       Receta_medicamento[]
-  @@map("recetas")
-}
-
-model Receta_medicamento {
-  id             Int         @id @default(autoincrement())
-  receta_id      Int
+  id Int @id @default(autoincrement())
   medicamento_id Int
-  dosis          String
-  frecuencia     String
-  duracion       String
-
-  receta         Receta      @relation(fields: [receta_id], references: [id])
-  medicamento    Medicamento @relation(fields: [medicamento_id], references: [id])
-
-  @@unique([receta_id, medicamento_id])
-  @@map("receta_medicamento")
+  medicamento Medicamento @relation(fields: [medicamento_id], references: [id])
+  mascota_id Int
+  mascota Mascota @relation(fields: [mascota_id], references: [id])
+  historial_visitas Historial_visitas[]
 }
 
 model Historial_visitas {

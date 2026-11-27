@@ -1,7 +1,4 @@
-﻿packages:
-  - "nestjs"
-
 allowBuilds:
-  "@prisma/engines": true
+  '@prisma/engines': true
+  '@scarf/scarf': true
   prisma: true
-  esbuild: true
